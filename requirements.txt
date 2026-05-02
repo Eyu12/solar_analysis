@@ -4,3 +4,9 @@ matplotlib
 seaborn
 scipy
 jupyter
+requests
+plotly
+streamlit
+scikit-learn
+xgboost
+python-dotenv
