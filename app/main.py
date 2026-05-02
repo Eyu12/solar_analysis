@@ -108,8 +108,13 @@ st.markdown("---")
 # SIDEBAR
 # ═══════════════════════════════════════
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/NASA_logo.svg/200px-NASA_logo.svg.png", 
-             width=100)
+    st.markdown("""
+    <div style='text-align:center; padding:10px;'>
+        <span style='font-size:2rem;'>🚀</span>
+        <p style='color:#FF6B35; font-weight:bold; margin:0;'>NASA POWER</p>
+        <p style='color:#666; font-size:0.8rem;'>Data Source</p>
+    </div>
+""", unsafe_allow_html=True)
     st.markdown("### ⚙️ Dashboard Controls")
     
     selected_countries = st.multiselect(
