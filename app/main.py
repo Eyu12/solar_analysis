@@ -320,6 +320,139 @@ st.dataframe(
 )
 
 # ═══════════════════════════════════════
+# SOLAR PREDICTION TOOL
+# ═══════════════════════════════════════
+st.markdown("### 🔮 Solar Prediction Tool")
+st.markdown("*Enter any location to predict solar irradiance!*")
+
+# Load model
+import joblib
+
+@st.cache_resource
+def load_model():
+    try:
+        model = joblib.load("scripts/solar_model.pkl")
+        le_c = joblib.load("scripts/le_country.pkl")
+        le_s = joblib.load("scripts/le_season.pkl")
+        return model, le_c, le_s
+    except:
+        return None, None, None
+
+model, le_c, le_s = load_model()
+
+if model is None:
+    st.warning("⚠️ Model not found! Please train and save the model first.")
+else:
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        pred_lat = st.number_input("📍 Latitude", 
+                                    min_value=-90.0, 
+                                    max_value=90.0, 
+                                    value=9.03,
+                                    help="Ethiopia = 9.03")
+        pred_lon = st.number_input("📍 Longitude", 
+                                    min_value=-180.0, 
+                                    max_value=180.0, 
+                                    value=38.74,
+                                    help="Ethiopia = 38.74")
+    
+    with col2:
+        pred_month = st.slider("📅 Month", 1, 12, 6,
+                                format="%d")
+        pred_temp = st.number_input("🌡️ Temperature (°C)", 
+                                     min_value=-20.0,
+                                     max_value=50.0, 
+                                     value=25.0)
+    
+    with col3:
+        pred_humidity = st.number_input("💧 Humidity (%)", 
+                                         min_value=0.0,
+                                         max_value=100.0, 
+                                         value=45.0)
+        pred_wind = st.number_input("💨 Wind Speed (m/s)", 
+                                     min_value=0.0,
+                                     max_value=20.0, 
+                                     value=3.0)
+
+    # Predict button
+    if st.button("⚡ Predict Solar Irradiance!", 
+                  type="primary",
+                  use_container_width=True):
+        
+        # Determine season
+        season = ("Summer" if pred_month in [6,7,8] else
+                  "Winter" if pred_month in [12,1,2] else
+                  "Spring" if pred_month in [3,4,5] else "Autumn")
+        
+        # Handle unseen labels
+        known_seasons = list(le_s.classes_)
+        if season not in known_seasons:
+            season = known_seasons[0]
+        
+        season_enc = le_s.transform([season])[0]
+        
+        # Build feature vector
+        sample = pd.DataFrame([{
+            "T2M": pred_temp,
+            "RH2M": pred_humidity,
+            "WS2M": pred_wind,
+            "PRECTOTCORR": 0.1,
+            "month": pred_month,
+            "day_of_year": pred_month * 30,
+            "country_encoded": 0,
+            "season_encoded": season_enc,
+            "lat": pred_lat,
+            "lon": pred_lon,
+            "solar_7day_avg": 5.5,
+            "solar_30day_avg": 5.3,
+            "CLRSKY_SFC_SW_DWN": 7.5,
+            "clear_sky_ratio": 0.75
+        }])
+        
+        prediction = model.predict(sample)[0]
+        
+        # Rating
+        if prediction >= 6.0:
+            rating = "🔥 Excellent"
+            color = "#FF6B35"
+            advice = "Perfect for large scale solar farm investment!"
+        elif prediction >= 5.0:
+            rating = "✅ Very Good"
+            color = "#F7C59F"
+            advice = "Great potential for solar installation!"
+        elif prediction >= 4.0:
+            rating = "👍 Good"
+            color = "#1A936F"
+            advice = "Suitable for solar energy projects!"
+        elif prediction >= 3.0:
+            rating = "⚠️ Moderate"
+            color = "#004E89"
+            advice = "Consider solar with backup energy sources."
+        else:
+            rating = "❌ Poor"
+            color = "#666"
+            advice = "Not recommended for solar investment."
+        
+        # Display result
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, {color}, #333);
+                    padding: 2rem; border-radius: 15px; 
+                    text-align: center; margin-top: 1rem;'>
+            <h2 style='color: white; margin:0;'>
+                {prediction:.2f} kW-hr/m²/day
+            </h2>
+            <h3 style='color: white; margin:0.5rem 0;'>{rating}</h3>
+            <p style='color: rgba(255,255,255,0.8); margin:0;'>{advice}</p>
+            <p style='color: rgba(255,255,255,0.6); 
+                      font-size:0.8rem; margin-top:0.5rem;'>
+                📍 Lat: {pred_lat} | Lon: {pred_lon} | 
+                Month: {pred_month} | Season: {season}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════
 # FOOTER
 # ═══════════════════════════════════════
 st.markdown("---")
