@@ -243,6 +243,96 @@ fig4.update_layout(height=400, showlegend=False,
 st.plotly_chart(fig4, use_container_width=True)
 
 # ═══════════════════════════════════════
+# WORLD MAP
+# ═══════════════════════════════════════
+st.markdown("### 🗺️ World Solar Potential Map")
+
+# Country coordinates and means
+map_data = []
+for country, df in all_data.items():
+    # Find coordinates from COUNTRIES dict
+    for key, info in COUNTRIES.items():
+        if country in key:
+            map_data.append({
+                "country": country,
+                "lat": info["lat"],
+                "lon": info["lon"],
+                "mean_solar": round(df["ALLSKY_SFC_SW_DWN"].mean(), 2),
+                "max_solar": round(df["ALLSKY_SFC_SW_DWN"].max(), 2),
+                "continent": info["continent"]
+            })
+            break
+
+map_df = pd.DataFrame(map_data)
+
+# Create world map
+fig_map = px.scatter_geo(
+    map_df,
+    lat="lat",
+    lon="lon",
+    color="mean_solar",
+    size="mean_solar",
+    hover_name="country",
+    hover_data={
+        "mean_solar": ":.2f",
+        "max_solar": ":.2f",
+        "continent": True,
+        "lat": False,
+        "lon": False
+    },
+    color_continuous_scale="YlOrRd",
+    size_max=40,
+    projection="natural earth",
+    title="☀️ Solar Irradiance by Country (kW-hr/m²/day)"
+)
+
+fig_map.update_layout(
+    height=500,
+    geo=dict(
+        showframe=False,
+        showcoastlines=True,
+        coastlinecolor="rgba(255,255,255,0.3)",
+        showland=True,
+        landcolor="rgba(50,50,50,0.8)",
+        showocean=True,
+        oceancolor="rgba(30,30,60,0.8)",
+        showlakes=True,
+        lakecolor="rgba(30,30,60,0.8)",
+        showcountries=True,
+        countrycolor="rgba(255,255,255,0.2)",
+        bgcolor="rgba(0,0,0,0)"
+    ),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="white"),
+    coloraxis_colorbar=dict(
+        title="kW-hr/m²/day",
+        tickfont=dict(color="white"),
+        titlefont=dict(color="white")
+    )
+)
+
+st.plotly_chart(fig_map, use_container_width=True)
+
+# Top regions table
+st.markdown("### 🏆 Top Solar Investment Regions")
+top_regions = map_df.sort_values("mean_solar", ascending=False).reset_index(drop=True)
+top_regions.index += 1
+top_regions.columns = ["Country", "Latitude", "Longitude", 
+                        "Mean Solar", "Max Solar", "Continent"]
+top_regions = top_regions[["Country", "Continent", "Mean Solar", "Max Solar"]]
+
+# Add medal emojis
+medals = ["🥇", "🥈", "🥉"] + ["🏅"] * (len(top_regions) - 3)
+top_regions.insert(0, "Rank", medals[:len(top_regions)])
+
+st.dataframe(
+    top_regions,
+    use_container_width=True,
+    hide_index=True
+)
+
+# ═══════════════════════════════════════
 # FOOTER
 # ═══════════════════════════════════════
 st.markdown("---")
