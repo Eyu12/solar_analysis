@@ -291,26 +291,13 @@ fig_map.update_layout(
     geo=dict(
         showframe=False,
         showcoastlines=True,
-        coastlinecolor="rgba(255,255,255,0.3)",
-        showland=True,
-        landcolor="rgba(50,50,50,0.8)",
-        showocean=True,
-        oceancolor="rgba(30,30,60,0.8)",
-        showlakes=True,
-        lakecolor="rgba(30,30,60,0.8)",
         showcountries=True,
-        countrycolor="rgba(255,255,255,0.2)",
-        bgcolor="rgba(0,0,0,0)"
+        showland=True,
+        showocean=True,
     ),
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="white"),
-    coloraxis_colorbar=dict(
-        title="kW-hr/m²/day",
-        tickfont=dict(color="white"),
-        titlefont=dict(color="white")
-    )
+    margin=dict(l=0, r=0, t=40, b=0)
 )
+
 
 st.plotly_chart(fig_map, use_container_width=True)
 
