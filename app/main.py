@@ -40,26 +40,37 @@ st.markdown("""
 # ═══════════════════════════════════════
 # CONSTANTS
 # ═══════════════════════════════════════
-MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+MONTH_NAMES     = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+NASA_MONTH_KEYS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+                   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 COUNTRIES = {
-    "🇪🇹 Ethiopia":     {"lat": 9.03,   "lon": 38.74,  "continent": "Africa"},
-    "🇧🇯 Benin":        {"lat": 9.31,   "lon": 2.32,   "continent": "Africa"},
-    "🇸🇱 Sierra Leone": {"lat": 8.46,   "lon": -11.77, "continent": "Africa"},
-    "🇪🇬 Egypt":        {"lat": 26.82,  "lon": 30.80,  "continent": "Africa"},
-    "🇿🇦 South Africa": {"lat": -30.56, "lon": 22.94,  "continent": "Africa"},
-    "🇮🇳 India":        {"lat": 20.59,  "lon": 78.96,  "continent": "Asia"},
+    "🇪🇹 Ethiopia":     {"lat":  9.03,  "lon":  38.74, "continent": "Africa"},
+    "🇧🇯 Benin":        {"lat":  9.31,  "lon":   2.32, "continent": "Africa"},
+    "🇸🇱 Sierra Leone": {"lat":  8.46,  "lon": -11.77, "continent": "Africa"},
+    "🇪🇬 Egypt":        {"lat": 26.82,  "lon":  30.80, "continent": "Africa"},
+    "🇿🇦 South Africa": {"lat":-30.56,  "lon":  22.94, "continent": "Africa"},
+    "🇮🇳 India":        {"lat": 20.59,  "lon":  78.96, "continent": "Asia"},
     "🇨🇳 China":        {"lat": 35.86,  "lon": 104.19, "continent": "Asia"},
-    "🇸🇦 Saudi Arabia": {"lat": 23.89,  "lon": 45.08,  "continent": "Asia"},
-    "🇦🇪 UAE":          {"lat": 23.42,  "lon": 53.85,  "continent": "Asia"},
-    "🇩🇪 Germany":      {"lat": 51.16,  "lon": 10.45,  "continent": "Europe"},
-    "🇪🇸 Spain":        {"lat": 40.46,  "lon": -3.74,  "continent": "Europe"},
+    "🇸🇦 Saudi Arabia": {"lat": 23.89,  "lon":  45.08, "continent": "Asia"},
+    "🇦🇪 UAE":          {"lat": 23.42,  "lon":  53.85, "continent": "Asia"},
+    "🇩🇪 Germany":      {"lat": 51.16,  "lon":  10.45, "continent": "Europe"},
+    "🇪🇸 Spain":        {"lat": 40.46,  "lon":  -3.74, "continent": "Europe"},
     "🇺🇸 USA":          {"lat": 37.09,  "lon": -95.71, "continent": "Americas"},
-    "🇧🇷 Brazil":       {"lat": -14.24, "lon": -51.93, "continent": "Americas"},
-    "🇨🇱 Chile":        {"lat": -35.67, "lon": -71.54, "continent": "Americas"},
-    "🇦🇺 Australia":    {"lat": -25.27, "lon": 133.77, "continent": "Oceania"},
+    "🇧🇷 Brazil":       {"lat":-14.24,  "lon": -51.93, "continent": "Americas"},
+    "🇨🇱 Chile":        {"lat":-35.67,  "lon": -71.54, "continent": "Americas"},
+    "🇦🇺 Australia":    {"lat":-25.27,  "lon": 133.77, "continent": "Oceania"},
 }
+
+# ═══════════════════════════════════════
+# HELPER
+# ═══════════════════════════════════════
+def get_month_value(param_dict, month_int):
+    """Get monthly value using NASA uppercase month keys e.g. JAN, FEB"""
+    key = NASA_MONTH_KEYS[month_int - 1]
+    val = param_dict.get(key, 0)
+    return float(val) if val and float(val) > -900 else 0.0
 
 # ═══════════════════════════════════════
 # API FUNCTIONS
@@ -111,20 +122,6 @@ def fetch_climatology_data(lat, lon):
         st.error(f"Climatology API Error: {e}")
     return None
 
-
-def get_month_value(param_dict, month_int):
-    """Safely get monthly value trying multiple key formats"""
-    # Try integer string "1", "2", ... "12"
-    val = param_dict.get(str(month_int))
-    if val is not None and val > -900:
-        return val
-    # Try zero-padded "01", "02", ... "12"
-    val = param_dict.get(str(month_int).zfill(2))
-    if val is not None and val > -900:
-        return val
-    return 0.0
-
-
 # ═══════════════════════════════════════
 # HEADER
 # ═══════════════════════════════════════
@@ -152,9 +149,7 @@ with st.sidebar:
         options=list(COUNTRIES.keys()),
         default=["🇪🇹 Ethiopia", "🇪🇬 Egypt", "🇩🇪 Germany", "🇦🇺 Australia", "🇮🇳 India"]
     )
-
     year = st.selectbox("📅 Select Year", [2021, 2022, 2023], index=2)
-
     st.markdown("---")
     st.markdown("### 📊 About")
     st.info("Built with NASA POWER API\nBy Eyayaw Zewdu\nArba Minch University")
@@ -306,11 +301,11 @@ col1, col2 = st.columns(2)
 with col1:
     pred_lat = st.number_input(
         "📍 Latitude", min_value=-90.0, max_value=90.0,
-        value=9.03, help="Range: -90 to 90"
+        value=6.03, help="Range: -90 to 90"
     )
     pred_lon = st.number_input(
         "📍 Longitude", min_value=-180.0, max_value=180.0,
-        value=38.74, help="Range: -180 to 180"
+        value=37.55, help="Range: -180 to 180"
     )
 
 with col2:
@@ -338,16 +333,16 @@ if st.button("⚡ Get Solar Data & Prediction!", type="primary", use_container_w
         clim_data = fetch_climatology_data(pred_lat, pred_lon)
 
     if clim_data:
-        # Extract monthly values safely
+        # Extract monthly values using correct NASA uppercase keys
         solar    = get_month_value(clim_data["ALLSKY_SFC_SW_DWN"], pred_month)
         clrsky   = get_month_value(clim_data["CLRSKY_SFC_SW_DWN"], pred_month)
         temp     = get_month_value(clim_data["T2M"],               pred_month)
         humidity = get_month_value(clim_data["RH2M"],              pred_month)
         wind     = get_month_value(clim_data["WS2M"],              pred_month)
 
-        # Annual average
-        annual_avg = clim_data["ALLSKY_SFC_SW_DWN"].get("ANN", 0)
-        if not annual_avg or annual_avg < 0:
+        # Annual average directly from NASA ANN key
+        annual_avg = float(clim_data["ALLSKY_SFC_SW_DWN"].get("ANN", 0))
+        if annual_avg <= 0:
             annual_avg = np.mean([
                 get_month_value(clim_data["ALLSKY_SFC_SW_DWN"], m)
                 for m in range(1, 13)
