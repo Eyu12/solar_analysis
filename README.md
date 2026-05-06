@@ -86,23 +86,6 @@ Built as part of the **SAFEE KAIM — Kifiya AI Mastery Training Program**
 - Python 3.x
 - Git
 
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/worldwide-solar-intelligence.git
-
-# Navigate to project
-cd worldwide-solar-intelligence
-
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Mac/Linux
-
-# Install dependencies
-pip install -r requirements.txt
-```
 
 ### Run the Dashboard
 
@@ -114,8 +97,8 @@ streamlit run main.py
 ---
 
 ## 📁 Project Structure
-
-worldwide-solar-intelligence/
+```bash
+solar-analysis/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
@@ -124,7 +107,7 @@ worldwide-solar-intelligence/
 │   └── main.py          # Streamlit dashboard
 ├── notebooks/
 │   ├── 01_nasa_api_exploration.ipynb
-│   └── compare_countries.ipynb
+│   └── tool.ipynb
 ├── scripts/
 │   └── init.py
 ├── tests/
@@ -132,7 +115,7 @@ worldwide-solar-intelligence/
 ├── data/                # gitignored
 ├── requirements.txt
 └── README.md
-
+```
 ---
 
 ## 📊 Dashboard Preview
