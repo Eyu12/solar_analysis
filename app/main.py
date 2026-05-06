@@ -38,6 +38,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════
+# CONSTANTS
+# ═══════════════════════════════════════
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+COUNTRIES = {
+    "🇪🇹 Ethiopia":     {"lat": 9.03,   "lon": 38.74,  "continent": "Africa"},
+    "🇧🇯 Benin":        {"lat": 9.31,   "lon": 2.32,   "continent": "Africa"},
+    "🇸🇱 Sierra Leone": {"lat": 8.46,   "lon": -11.77, "continent": "Africa"},
+    "🇪🇬 Egypt":        {"lat": 26.82,  "lon": 30.80,  "continent": "Africa"},
+    "🇿🇦 South Africa": {"lat": -30.56, "lon": 22.94,  "continent": "Africa"},
+    "🇮🇳 India":        {"lat": 20.59,  "lon": 78.96,  "continent": "Asia"},
+    "🇨🇳 China":        {"lat": 35.86,  "lon": 104.19, "continent": "Asia"},
+    "🇸🇦 Saudi Arabia": {"lat": 23.89,  "lon": 45.08,  "continent": "Asia"},
+    "🇦🇪 UAE":          {"lat": 23.42,  "lon": 53.85,  "continent": "Asia"},
+    "🇩🇪 Germany":      {"lat": 51.16,  "lon": 10.45,  "continent": "Europe"},
+    "🇪🇸 Spain":        {"lat": 40.46,  "lon": -3.74,  "continent": "Europe"},
+    "🇺🇸 USA":          {"lat": 37.09,  "lon": -95.71, "continent": "Americas"},
+    "🇧🇷 Brazil":       {"lat": -14.24, "lon": -51.93, "continent": "Americas"},
+    "🇨🇱 Chile":        {"lat": -35.67, "lon": -71.54, "continent": "Americas"},
+    "🇦🇺 Australia":    {"lat": -25.27, "lon": 133.77, "continent": "Oceania"},
+}
+
+# ═══════════════════════════════════════
 # API FUNCTIONS
 # ═══════════════════════════════════════
 @st.cache_data(ttl=3600)
@@ -72,7 +96,7 @@ def fetch_climatology_data(lat, lon):
     """Fetch long-term climatology data from NASA POWER API"""
     url = "https://power.larc.nasa.gov/api/temporal/climatology/point"
     params = {
-        "parameters": "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,T2M,RH2M,WS2M,PRECTOTCORR",
+        "parameters": "ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,T2M,RH2M,WS2M",
         "community": "RE",
         "longitude": lon,
         "latitude": lat,
@@ -87,29 +111,19 @@ def fetch_climatology_data(lat, lon):
         st.error(f"Climatology API Error: {e}")
     return None
 
-# ═══════════════════════════════════════
-# COUNTRY DATABASE
-# ═══════════════════════════════════════
-COUNTRIES = {
-    "🇪🇹 Ethiopia":     {"lat": 9.03,   "lon": 38.74,  "continent": "Africa"},
-    "🇧🇯 Benin":        {"lat": 9.31,   "lon": 2.32,   "continent": "Africa"},
-    "🇸🇱 Sierra Leone": {"lat": 8.46,   "lon": -11.77, "continent": "Africa"},
-    "🇪🇬 Egypt":        {"lat": 26.82,  "lon": 30.80,  "continent": "Africa"},
-    "🇿🇦 South Africa": {"lat": -30.56, "lon": 22.94,  "continent": "Africa"},
-    "🇮🇳 India":        {"lat": 20.59,  "lon": 78.96,  "continent": "Asia"},
-    "🇨🇳 China":        {"lat": 35.86,  "lon": 104.19, "continent": "Asia"},
-    "🇸🇦 Saudi Arabia": {"lat": 23.89,  "lon": 45.08,  "continent": "Asia"},
-    "🇦🇪 UAE":          {"lat": 23.42,  "lon": 53.85,  "continent": "Asia"},
-    "🇩🇪 Germany":      {"lat": 51.16,  "lon": 10.45,  "continent": "Europe"},
-    "🇪🇸 Spain":        {"lat": 40.46,  "lon": -3.74,  "continent": "Europe"},
-    "🇺🇸 USA":          {"lat": 37.09,  "lon": -95.71, "continent": "Americas"},
-    "🇧🇷 Brazil":       {"lat": -14.24, "lon": -51.93, "continent": "Americas"},
-    "🇨🇱 Chile":        {"lat": -35.67, "lon": -71.54, "continent": "Americas"},
-    "🇦🇺 Australia":    {"lat": -25.27, "lon": 133.77, "continent": "Oceania"},
-}
 
-MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+def get_month_value(param_dict, month_int):
+    """Safely get monthly value trying multiple key formats"""
+    # Try integer string "1", "2", ... "12"
+    val = param_dict.get(str(month_int))
+    if val is not None and val > -900:
+        return val
+    # Try zero-padded "01", "02", ... "12"
+    val = param_dict.get(str(month_int).zfill(2))
+    if val is not None and val > -900:
+        return val
+    return 0.0
+
 
 # ═══════════════════════════════════════
 # HEADER
@@ -146,7 +160,7 @@ with st.sidebar:
     st.info("Built with NASA POWER API\nBy Eyayaw Zewdu\nArba Minch University")
 
 # ═══════════════════════════════════════
-# FETCH DATA
+# FETCH DAILY DATA
 # ═══════════════════════════════════════
 if not selected_countries:
     st.warning("⚠️ Please select at least one country from the sidebar!")
@@ -158,10 +172,8 @@ with st.spinner("☀️ Fetching real NASA solar data..."):
         info = COUNTRIES[country]
         clean_name = country.split(" ", 1)[1]
         df = fetch_solar_data(
-            lat=info["lat"],
-            lon=info["lon"],
-            start=f"{year}0101",
-            end=f"{year}1231",
+            lat=info["lat"], lon=info["lon"],
+            start=f"{year}0101", end=f"{year}1231",
             country_name=clean_name
         )
         if df is not None:
@@ -175,7 +187,7 @@ cols = st.columns(len(all_data))
 for idx, (country, df) in enumerate(all_data.items()):
     with cols[idx]:
         mean_val = df["ALLSKY_SFC_SW_DWN"].mean()
-        max_val = df["ALLSKY_SFC_SW_DWN"].max()
+        max_val  = df["ALLSKY_SFC_SW_DWN"].max()
         st.metric(
             label=f"☀️ {country}",
             value=f"{mean_val:.2f}",
@@ -198,8 +210,7 @@ with col1:
             name=country, mode="lines", opacity=0.8
         ))
     fig1.update_layout(
-        xaxis_title="Date", yaxis_title="kW-hr/m²/day",
-        height=350,
+        xaxis_title="Date", yaxis_title="kW-hr/m²/day", height=350,
         legend=dict(orientation="h", yanchor="bottom", y=1.02)
     )
     st.plotly_chart(fig1, use_container_width=True)
@@ -209,10 +220,8 @@ with col2:
     means = {c: df["ALLSKY_SFC_SW_DWN"].mean() for c, df in all_data.items()}
     sorted_means = dict(sorted(means.items(), key=lambda x: x[1], reverse=True))
     fig2 = px.bar(
-        x=list(sorted_means.values()),
-        y=list(sorted_means.keys()),
-        orientation="h",
-        color=list(sorted_means.values()),
+        x=list(sorted_means.values()), y=list(sorted_means.keys()),
+        orientation="h", color=list(sorted_means.values()),
         color_continuous_scale="YlOrRd",
         labels={"x": "Mean kW-hr/m²/day", "y": "Country"}
     )
@@ -223,7 +232,6 @@ st.markdown("#### 🌡️ Monthly Solar Heatmap")
 monthly_data = {}
 for country, df in all_data.items():
     monthly_data[country] = df["ALLSKY_SFC_SW_DWN"].resample("ME").mean().values[:12]
-
 heatmap_df = pd.DataFrame(monthly_data, index=MONTH_NAMES)
 fig3 = px.imshow(heatmap_df, color_continuous_scale="YlOrRd", aspect="auto", text_auto=".1f")
 fig3.update_layout(height=350)
@@ -250,12 +258,12 @@ for country, df in all_data.items():
     for key, info in COUNTRIES.items():
         if country in key:
             map_data.append({
-                "country": country,
-                "lat": info["lat"],
-                "lon": info["lon"],
+                "country":    country,
+                "lat":        info["lat"],
+                "lon":        info["lon"],
                 "mean_solar": round(df["ALLSKY_SFC_SW_DWN"].mean(), 2),
-                "max_solar": round(df["ALLSKY_SFC_SW_DWN"].max(), 2),
-                "continent": info["continent"]
+                "max_solar":  round(df["ALLSKY_SFC_SW_DWN"].max(), 2),
+                "continent":  info["continent"]
             })
             break
 
@@ -266,8 +274,8 @@ fig_map = px.scatter_geo(
     hover_name="country",
     hover_data={"mean_solar": ":.2f", "max_solar": ":.2f",
                 "continent": True, "lat": False, "lon": False},
-    color_continuous_scale="YlOrRd",
-    size_max=40, projection="natural earth",
+    color_continuous_scale="YlOrRd", size_max=40,
+    projection="natural earth",
     title="☀️ Solar Irradiance by Country (kW-hr/m²/day)"
 )
 fig_map.update_layout(
@@ -330,48 +338,48 @@ if st.button("⚡ Get Solar Data & Prediction!", type="primary", use_container_w
         clim_data = fetch_climatology_data(pred_lat, pred_lon)
 
     if clim_data:
-        month_str = str(pred_month).zfill(2)
-
-        # Extract values
-        solar  = clim_data["ALLSKY_SFC_SW_DWN"].get(month_str, 0)
-        clrsky = clim_data["CLRSKY_SFC_SW_DWN"].get(month_str, 0)
-        temp   = clim_data["T2M"].get(month_str, 0)
-        humidity = clim_data["RH2M"].get(month_str, 0)
-        wind   = clim_data["WS2M"].get(month_str, 0)
+        # Extract monthly values safely
+        solar    = get_month_value(clim_data["ALLSKY_SFC_SW_DWN"], pred_month)
+        clrsky   = get_month_value(clim_data["CLRSKY_SFC_SW_DWN"], pred_month)
+        temp     = get_month_value(clim_data["T2M"],               pred_month)
+        humidity = get_month_value(clim_data["RH2M"],              pred_month)
+        wind     = get_month_value(clim_data["WS2M"],              pred_month)
 
         # Annual average
-        annual_avg = np.mean([
-            v for k, v in clim_data["ALLSKY_SFC_SW_DWN"].items()
-            if k != "ANN" and isinstance(v, (int, float)) and v > 0
-        ])
+        annual_avg = clim_data["ALLSKY_SFC_SW_DWN"].get("ANN", 0)
+        if not annual_avg or annual_avg < 0:
+            annual_avg = np.mean([
+                get_month_value(clim_data["ALLSKY_SFC_SW_DWN"], m)
+                for m in range(1, 13)
+            ])
 
         # Rating
         if solar >= 6.5:
             rating = "🔥 Exceptional"
-            color = "#FF4500"
+            color  = "#FF4500"
             advice = "World class solar potential — ideal for large scale solar farm!"
         elif solar >= 5.5:
             rating = "✅ Excellent"
-            color = "#FF6B35"
+            color  = "#FF6B35"
             advice = "Outstanding solar potential — highly recommended for investment!"
         elif solar >= 4.5:
             rating = "👍 Very Good"
-            color = "#1A936F"
+            color  = "#1A936F"
             advice = "Great potential — suitable for solar installation!"
         elif solar >= 3.5:
             rating = "⚠️ Moderate"
-            color = "#004E89"
+            color  = "#004E89"
             advice = "Moderate potential — consider with backup energy sources."
         else:
             rating = "❌ Poor"
-            color = "#666"
+            color  = "#666"
             advice = "Low solar potential — not recommended for solar investment."
 
         # Season
         season = (
-            "Summer ☀️" if pred_month in [6, 7, 8] else
+            "Summer ☀️" if pred_month in [6, 7, 8]  else
             "Winter ❄️" if pred_month in [12, 1, 2] else
-            "Spring 🌸" if pred_month in [3, 4, 5] else
+            "Spring 🌸" if pred_month in [3, 4, 5]  else
             "Autumn 🍂"
         )
 
@@ -380,12 +388,12 @@ if st.button("⚡ Get Solar Data & Prediction!", type="primary", use_container_w
         <div style='background: linear-gradient(135deg, {color}, #1a1a2e);
                     padding: 2rem; border-radius: 15px;
                     text-align: center; margin: 1rem 0;'>
-            <h2 style='color: white; margin:0; font-size:2.5rem;'>
+            <h2 style='color:white; margin:0; font-size:2.5rem;'>
                 {solar:.2f} kW-hr/m²/day
             </h2>
-            <h3 style='color: white; margin:0.5rem 0;'>{rating}</h3>
-            <p style='color: rgba(255,255,255,0.85); margin:0;'>{advice}</p>
-            <p style='color: rgba(255,255,255,0.6); font-size:0.85rem; margin-top:0.8rem;'>
+            <h3 style='color:white; margin:0.5rem 0;'>{rating}</h3>
+            <p style='color:rgba(255,255,255,0.85); margin:0;'>{advice}</p>
+            <p style='color:rgba(255,255,255,0.6); font-size:0.85rem; margin-top:0.8rem;'>
                 📍 Lat: {pred_lat} | Lon: {pred_lon} |
                 {MONTH_NAMES[pred_month-1]} | {season}
             </p>
@@ -395,21 +403,20 @@ if st.button("⚡ Get Solar Data & Prediction!", type="primary", use_container_w
         # NASA weather metrics
         st.markdown("#### 📡 Real NASA Climatology Data")
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("☀️ Solar",      f"{solar:.2f}",    "kW-hr/m²/day")
-        c2.metric("🌤️ Clear Sky",  f"{clrsky:.2f}",   "kW-hr/m²/day")
-        c3.metric("🌡️ Temp",       f"{temp:.1f}",     "°C")
-        c4.metric("💧 Humidity",   f"{humidity:.1f}", "%")
-        c5.metric("💨 Wind",       f"{wind:.1f}",     "m/s")
+        c1.metric("☀️ Solar",     f"{solar:.2f}",    "kW-hr/m²/day")
+        c2.metric("🌤️ Clear Sky", f"{clrsky:.2f}",   "kW-hr/m²/day")
+        c3.metric("🌡️ Temp",      f"{temp:.1f}",     "°C")
+        c4.metric("💧 Humidity",  f"{humidity:.1f}", "%")
+        c5.metric("💨 Wind",      f"{wind:.1f}",     "m/s")
 
         # Monthly profile chart
         st.markdown("#### 📊 Monthly Solar Profile for This Location")
         monthly_solar = []
         for m in range(1, 13):
-            m_str = str(m).zfill(2)
-            val = clim_data["ALLSKY_SFC_SW_DWN"].get(m_str, 0)
+            val = get_month_value(clim_data["ALLSKY_SFC_SW_DWN"], m)
             monthly_solar.append({
-                "Month": MONTH_NAMES[m - 1],
-                "Solar": val,
+                "Month":    MONTH_NAMES[m - 1],
+                "Solar":    val,
                 "Selected": "Selected" if m == pred_month else "Other"
             })
 
